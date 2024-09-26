@@ -1,13 +1,13 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
-use serde::Deserialize;
 use wmi::*;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename = "__InstanceCreationEvent")]
 #[serde(rename_all = "PascalCase")]
 struct NewProcessEvent {
-    target_instance: Process
+    target_instance: Process,
 }
 
 #[derive(Deserialize, Debug)]
@@ -25,31 +25,39 @@ struct Process {
 fn main() {
     let mut filters = HashMap::<String, FilterValue>::new();
 
-    filters.insert("TargetInstance".to_owned(), FilterValue::is_a::<Process>().unwrap());
+    filters.insert(
+        "TargetInstance".to_owned(),
+        FilterValue::is_a::<Process>().unwrap(),
+    );
     let wmi_con = WMIConnection::new(COMLibrary::new().unwrap()).unwrap();
-    const MAX_RETRIES: usize = 1000; 
-    const RETRY_DELAY: Duration = Duration::from_secs(1); 
-    
+    const MAX_RETRIES: usize = 1000;
+    const RETRY_DELAY: Duration = Duration::from_secs(1);
+
     let mut iterator = None;
-    
+
     for _ in 0..MAX_RETRIES {
-        match wmi_con.filtered_notification::<NewProcessEvent>(&filters, Some(Duration::from_secs(1))) {
+        match wmi_con
+            .filtered_notification::<NewProcessEvent>(&filters, Some(Duration::from_secs(1)))
+        {
             Ok(iter) => {
                 iterator = Some(iter);
-                break; 
-            },
+                break;
+            }
             Err(e) => {
                 eprintln!("Failed to get filtered notification: {:?}", e);
-                std::thread::sleep(RETRY_DELAY); 
+                std::thread::sleep(RETRY_DELAY);
             }
         }
     }
-    
+
     // Check if the iterator was successfully created
     let iterator = match iterator {
         Some(iter) => iter,
         None => {
-            eprintln!("Failed to get filtered notification after {} retries.", MAX_RETRIES);
+            eprintln!(
+                "Failed to get filtered notification after {} retries.",
+                MAX_RETRIES
+            );
             return;
         }
     };
@@ -60,17 +68,26 @@ fn main() {
         println!("----------------NEW PROCESS----------------");
         println!("PID:        {}", process.process_id);
         println!("Name:       {}", process.name);
-        println!("Executable: {:?}", process.executable_path.unwrap_or("None".to_owned()));
-        println!("Parent PID: {:?}", process.parent_process_id.unwrap_or(0.to_owned()));
-        println!("Command:    {:?}", process.command_line.unwrap_or("None".to_owned()));        
+        println!(
+            "Executable: {:?}",
+            process.executable_path.unwrap_or("None".to_owned())
+        );
+        println!(
+            "Parent PID: {:?}",
+            process.parent_process_id.unwrap_or(0.to_owned())
+        );
+        println!(
+            "Command:    {:?}",
+            process.command_line.unwrap_or("None".to_owned())
+        );
         match process.creation_date {
             Some(wmi_date) => {
                 let formatted_date = convert_wmi_date_time(wmi_date);
                 println!("Created:    {}", formatted_date);
-            },
+            }
             None => {
                 println!("Created:    N/A");
-            },
+            }
         }
     }
 }
