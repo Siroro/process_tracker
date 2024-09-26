@@ -7,5 +7,13 @@ edition = "2021"
 wmi = "0.14"
 chrono = "0.4"
 serde = "1.0"
-egui = "0.28"
-eframe = "0.28"
+egui = "0.29.0"
+eframe = "0.29"
+
+[profile.shipping]
+inherits = "release"
+lto = "fat"
+debug = false
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
