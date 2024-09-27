@@ -65,7 +65,7 @@ fn main() {
 
     for result in iterator {
         let process = result.unwrap().target_instance;
-        println!("----------------NEW PROCESS----------------");
+        println!("============NEW PROCESS============");
         println!("PID:        {}", process.process_id);
         println!("Name:       {}", process.name);
         println!(
