@@ -1,0 +1,47 @@
+name: Increment Tag on Push
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to main branch
+
+jobs:
+  increment-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          # Fetch all tags
+          git fetch --tags
+          # Get the latest tag, default to v0.0.0 if no tags exist
+          latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+          echo "Latest tag: $latest_tag"
+          echo "::set-output name=LATEST_TAG::$latest_tag"
+
+      - name: Increment tag version
+        id: increment_tag
+        run: |
+          # Extract version numbers
+          IFS='.' read -r -a VERSION_PARTS <<< "${{ steps.get_tag.outputs.LATEST_TAG:1 }}"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+          # Increment the patch version
+          NEW_PATCH=$((PATCH + 1))
+          NEW_TAG="v$MAJOR.$MINOR.$NEW_PATCH"
+          echo "New tag: $NEW_TAG"
+          echo "::set-output name=NEW_TAG::$NEW_TAG"
+
+      - name: Create new tag
+        run: |
+          git tag ${{ steps.increment_tag.outputs.NEW_TAG }}
+          git push origin ${{ steps.increment_tag.outputs.NEW_TAG }}
