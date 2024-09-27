@@ -4,12 +4,40 @@ permissions:
   contents: write
 
 on:
-  push:
-    tags:
-      - v[0-9]+.*
+  push:  
+    branches:
+      - '**'  
+  
   
 
 jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get the latest tag
+        id: get_tag
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+          echo "Latest tag: $latest_tag"
+          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
+
+      - name: Increment tag
+        id: increment_tag
+        run: |
+          latest_tag=${{ env.latest_tag }}
+          # Split the version number into an array
+          IFS='.' read -r -a parts <<< "${latest_tag#v}"
+          # Increment the patch version
+          new_tag="v${parts[0]}.${parts[1]}.$((${parts[2]}+1))"
+          echo "New tag: $new_tag"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
+
+      - name: Push new tag
+        run: |
+          git tag ${{ env.new_tag }}
+          git push origin ${{ env.new_tag }}
+
   create-release:
     runs-on: ubuntu-latest
     steps:
