@@ -4,9 +4,10 @@ permissions:
   contents: write
 
 on:
-  push:
-    tags:
-      - v[0-9]+.*
+  push:  
+    branches:
+      - '**'  
+  
 
 jobs:
   create-release:
