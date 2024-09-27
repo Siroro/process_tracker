@@ -1,53 +1,21 @@
-name: Increment Tag on Push
-
+name: Bump version
 on:
   push:
     branches:
-      - main  # Trigger on push to main branch
-
+      - master
 jobs:
-  increment-tag:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Git
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-
-      - name: Get latest tag
-        id: get_tag
-        run: |
-          # Fetch all tags
-          git fetch --tags
-          # Get the latest tag, default to v0.0.0 if no tags exist
-          latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-          echo "Latest tag: $latest_tag"
-          echo "::set-output name=LATEST_TAG::$latest_tag"
-
-      - name: Increment tag version
-        id: increment_tag
-        run: |
-          # Remove the 'v' from the version tag (e.g., v1.0.0 -> 1.0.0)
-          latest_tag="${{ steps.get_tag.outputs.LATEST_TAG }}"
-          version="${latest_tag#v}"
-          
-          # Split the version into its components
-          IFS='.' read -r major minor patch <<< "$version"
-
-          # Increment the patch version
-          new_patch=$((patch + 1))
-
-          # Form the new tag
-          new_tag="v$major.$minor.$new_patch"
-          echo "New tag: $new_tag"
-          echo "::set-output name=NEW_TAG::$new_tag"
-
-      - name: Push new tag
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          git tag ${{ steps.increment_tag.outputs.NEW_TAG }}
-          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} ${{ steps.increment_tag.outputs.NEW_TAG }}
+      - uses: actions/checkout@v4
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
