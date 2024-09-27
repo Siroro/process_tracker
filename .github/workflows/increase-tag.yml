@@ -30,16 +30,20 @@ jobs:
       - name: Increment tag version
         id: increment_tag
         run: |
-          # Extract version numbers
-          IFS='.' read -r -a VERSION_PARTS <<< "${{ steps.get_tag.outputs.LATEST_TAG:1 }}"
-          MAJOR=${VERSION_PARTS[0]}
-          MINOR=${VERSION_PARTS[1]}
-          PATCH=${VERSION_PARTS[2]}
+          # Remove the 'v' from the version tag (e.g., v1.0.0 -> 1.0.0)
+          latest_tag="${{ steps.get_tag.outputs.LATEST_TAG }}"
+          version="${latest_tag#v}"
+          
+          # Split the version into its components
+          IFS='.' read -r major minor patch <<< "$version"
+
           # Increment the patch version
-          NEW_PATCH=$((PATCH + 1))
-          NEW_TAG="v$MAJOR.$MINOR.$NEW_PATCH"
-          echo "New tag: $NEW_TAG"
-          echo "::set-output name=NEW_TAG::$NEW_TAG"
+          new_patch=$((patch + 1))
+
+          # Form the new tag
+          new_tag="v$major.$minor.$new_patch"
+          echo "New tag: $new_tag"
+          echo "::set-output name=NEW_TAG::$new_tag"
 
       - name: Create new tag
         run: |
